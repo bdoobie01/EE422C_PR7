@@ -22,13 +22,29 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
 
 public class ChatServer {
 	private ArrayList<PrintWriter> clientOutpoutStreams;
 	private HashMap<String, String> loginData = new HashMap<String, String>();
+	private HashMap<String, List<String>> codeMap = new HashMap<String, List<String>>();
+	private HashMap<String, PrintWriter> liveUser = new HashMap<String, PrintWriter>();
+	private ArrayList<String> groupCodes = new ArrayList<String>();
+	private String[] codestart = {"0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"};
+	private String[] loginCombos = {"brian", "doobie",
+									"turan", "bieberlover123"};
+									
+	
 
 	public ChatServer() {
-		loginData.put("brian", "doobie");
+		for(int i=0;i<loginCombos.length;i=i+2){
+			loginData.put(loginCombos[i], loginCombos[i+1]);
+		}
+		for(String s : codestart){
+			groupCodes.add(s);
+		}
+		
 	}
 
 	/**
@@ -56,7 +72,6 @@ public class ChatServer {
 		@SuppressWarnings("resource")
 
 		ServerSocket serverSocket = new ServerSocket(4242);
-
 		while (true) {
 			Socket clientSocket = serverSocket.accept();
 			PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
@@ -86,6 +101,7 @@ public class ChatServer {
 	class ClientHandler implements Runnable {
 		private BufferedReader reader;
 		private PrintWriter cwriter;
+		private String userName;
 
 		/**
 		 * New ClientHandler for given socket Initializes reader to
@@ -104,47 +120,163 @@ public class ChatServer {
 		 * Reads lines from the BufferedReader while available
 		 */
 		public void run() {
-			
-			//Authentication
-			Boolean authenticated = false;
-			while (!authenticated) {
-				try {
-					String authMess = reader.readLine();
-					if (authMess.toCharArray()[0] != '1') {
-						continue;
-					} else {
-						authMess = authMess.replaceFirst("1", "");
-						String[] spt = authMess.split("\\^");
-						String username = spt[0];
-						String pwd = spt[1];
-
-						if (loginData.containsKey(username)) {
-							if (loginData.get(username).equals(pwd)) {
-								authenticated = true;
-							}
-						}
-						if (!authenticated) {
-							cwriter.println("1Invalid username or password");
-						} else {
-							cwriter.println("1Authenticated");
-						}
-						cwriter.flush();
-
-					}
-				} catch (Exception e) {
-				}
-			}
-			
-			
 			String message;
+
 			try {
 				while ((message = reader.readLine()) != null) {
-					System.out.println("read " + message);
-					notifyClients(message);
+					try {
+						char[] codeVal = new char[1];
+						codeVal[0] = message.charAt(0);
+						message = message.replaceFirst(new String(codeVal), "");
+
+						switch (codeVal[0]) {			
+						
+						case '0': // Message
+							handleMessage(message);
+							break;						
+							
+						case '1': // Login
+							handleLogin(message);
+							break;
+
+						case '2': // New Chat
+							handleNewChatGroup(message);
+							break;
+							
+						case '3': // New Login
+							handleNewUsernameRequest(message);
+							break;
+							
+						case '4': // Client Close
+							handleClientClose(message);
+							break;
+							
+						default:
+							break;
+						}
+					} catch (Exception e) {
+					}
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.out.println("Client " + userName + " has disconnected.");
 			}
 		}
+		
+		
+		private void handleMessage(String message){ //0
+			char[] ccode = new char[1];
+			ccode[0] = message.charAt(0);
+			if(codeMap.containsKey(new String(ccode))){
+				for(String user : codeMap.get(new String(ccode))){
+					toClient(liveUser.get(user),user,"0" + user + ": " + message);
+				}
+			}
+		}
+		
+		
+		private void handleLogin(String message){ //1
+			
+			boolean authenticated = false;
+			String[] spt = message.split("\\^");
+			String username = spt[0].toLowerCase();
+			String pwd = spt[1];
+
+			if (loginData.containsKey(username)) {
+				if (loginData.get(username).equals(pwd)) {
+					authenticated = true;
+				}
+			}
+			if (!authenticated) {
+				sendToClient("1Invalid username or password");
+			} else {
+				sendToClient("1Authenticated");
+				liveUser.put(username, cwriter);
+				userName = new String(username);
+			}
+		}
+		
+		
+		private void handleNewChatGroup(String message){ //2
+			List<String> names = new ArrayList<String>();
+			String[] naa = message.split("\\^");
+			for (String s : naa) {
+				if (liveUser.containsKey(s)) {
+					names.add(s);
+				} else {
+					sendToClient("2Unable to create new Groupchat");
+					return;
+				}
+			}
+			String code = groupCodes.get(0);
+			groupCodes.remove(code);
+			codeMap.put(code, names);
+			sendToClient("2" + code + "New Chatgroup created");
+		}
+		
+		private void handleNewUsernameRequest(String message){ //3
+			String[] spt = message.split("\\^");
+			String username = spt[0].toLowerCase();
+			String pwd = spt[1];
+			
+			if(!loginData.containsKey(username)){
+				loginData.put(username,pwd);
+				sendToClient("3Username created");
+				liveUser.put(username, cwriter);
+				userName = new String(username);
+			}
+			else{
+				sendToClient("3Username is unavailable");
+			}
+		}
+		
+		
+		private void handleClientClose(String message){ //4
+			if(userName != null){
+				
+				//Remove all group chats
+				List<String> badCodes = new ArrayList<String>();
+				for(String cds: codeMap.keySet()){
+					for(String s: codeMap.get(cds)){
+						if(s.equals(userName)){
+							badCodes.add(cds);
+							for(String s2: codeMap.get(cds)){
+								if(!s2.equals(userName)){
+									toClient(liveUser.get(s2),s2,"4" + cds);
+								}
+							}
+						}
+					}
+				}
+				
+				for(String s: badCodes){
+					codeMap.remove(s);
+					groupCodes.add(s);
+				}
+				
+				//Remove user from server
+				liveUser.remove(userName);
+				try {
+					reader.close();
+				} catch (IOException e) {}
+				cwriter.close();
+			}
+		}
+		
+		
+		
+		
+		private void sendToClient(String msg){
+			cwriter.println(msg);
+			cwriter.flush();
+			System.out.println(userName + ": " + msg);
+		}	
+		
+		
+	}
+	
+	static private void toClient(PrintWriter w, String user, String msg){
+		w.println(msg);
+		w.flush();
+		System.out.println(user + ": " + msg);
 	}
 }

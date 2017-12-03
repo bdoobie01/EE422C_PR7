@@ -16,35 +16,48 @@
 package assignment7;
 
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.WindowEvent;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ChatClient extends Application {
 
     /*GUI Elements go here*/
     private BorderPane borderPane;
-    private VBox center;
+    private VBox leftTray;
+    private HBox topTray;
+    private HBox bottomTray;
 
     private TextArea incoming;
     private TextField outgoing;
 
-    private Button button;
+    private Button newChat;
+    private Button sendButton;
+
 
     private BufferedReader reader;
     private PrintWriter writer;
 
-    public static ByteArrayOutputStream byteArrayOutputStream;
+    private static Map<Thread, IncomingReader> map = new HashMap<Thread, IncomingReader>();
+    Socket socket;
 
     public static void main(String [] args) {
         try {
@@ -68,30 +81,72 @@ public class ChatClient extends Application {
 
             primaryStage.initStyle(StageStyle.DECORATED);
 //            primaryStage.initModality(Modality.NONE);
-            primaryStage.setTitle("Chat Client");
+            primaryStage.setTitle("tDoobie's Super Encrypted Client");
+            primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+                @Override
+                public void handle(WindowEvent event) {
+                    try {
+                        closeNetworking();
+                        for(Thread t : map.keySet()) {
+                            IncomingReader incomingReader = map.get(t);
+                            incomingReader.terminate();
+                            t.join(10);
+                        }
+                        Platform.exit();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
 
-            center = new VBox();
-            center.setPadding(new Insets(10));
-            center.setSpacing(5);
+            leftTray = new VBox();
+            leftTray.setPadding(new Insets(10));
+            leftTray.setSpacing(5);
+
+            bottomTray = new HBox();
+            bottomTray.setPadding(new Insets(10));
+            bottomTray.setSpacing(5);
+
+            topTray = new HBox();
+            topTray.setPadding(new Insets(10));
+            topTray.setSpacing(5);
+
+            newChat = new Button("New");
 
             incoming = new TextArea();
-            outgoing = new TextField();
+            incoming.setEditable(false);
 
-            button = new Button("Send");
-            button.setOnAction(actionEvent -> {
+            outgoing = new TextField();
+            outgoing.setOnKeyReleased(new EventHandler<KeyEvent>() {
+                @Override
+                public void handle(KeyEvent event) {
+                    if (event.getCode() == KeyCode.ENTER) {
+                        try {
+                            sendMessage();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            });
+
+            sendButton = new Button("Send");
+            sendButton.setOnAction(actionEvent -> {
                 try {
-                    writer.println(outgoing.getText());
-                    writer.flush();
-                    outgoing.setText("");
-                    outgoing.requestFocus();
+                    sendMessage();
                 } catch(Exception e) {
                     e.printStackTrace();
                 }
             });
 
-            center.getChildren().addAll(incoming, outgoing, button);
+            leftTray.getChildren().addAll(newChat);
+            bottomTray.getChildren().addAll(outgoing, sendButton);
 
-            borderPane.setCenter(center);
+            borderPane.setTop(topTray);
+            borderPane.setBottom(bottomTray);
+            borderPane.setLeft(leftTray);
+            borderPane.setCenter(incoming);
+
 
             Scene scene = new Scene(borderPane, 500,500);
             primaryStage.setScene(scene);
@@ -107,8 +162,8 @@ public class ChatClient extends Application {
     }
 
     private void setUpNetworking() throws Exception {
-        @SuppressWarnings("resource")
-        Socket socket = new Socket("127.0.0.1", 4242);
+        //@SuppressWarnings("resource")
+        socket = new Socket("127.0.0.1", 4242);
 
         InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
         reader = new BufferedReader(streamReader);
@@ -117,25 +172,48 @@ public class ChatClient extends Application {
 
         System.out.println("Client: networking established");
 
-        Thread readerThread = new Thread(new IncomingReader());
+        IncomingReader incomingReader = new IncomingReader();
+        Thread readerThread = new Thread(incomingReader);
+        map.put(readerThread, incomingReader);
         readerThread.start();
     }
 
+    private void closeNetworking() throws IOException {
+        writer.close();
+        socket.close();
+        reader.close();
+    }
+
+    private void sendMessage() {
+        writer.println(outgoing.getText());
+        writer.flush();
+        outgoing.setText("");
+        outgoing.requestFocus();
+    }
+
     private class IncomingReader implements Runnable {
+        private volatile boolean running = true;
+
         /**
          * Incoming lines are printed to UI while they exist
          */
         @Override
         public void run() {
-            String message;
-            try {
-                while ((message = reader.readLine()) != null) {
-                    incoming.appendText(message + "\n");
+            while (running) {
+                String message;
+                try {
+                    while ((message = reader.readLine()) != null) {
+                        incoming.appendText(message + "\n");
 
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch(IOException e) {
-                e.printStackTrace();
             }
+        }
+
+        public void terminate() {
+            running = false;
         }
     }
 }

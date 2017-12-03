@@ -179,9 +179,9 @@ public class ChatClient extends Application {
     }
 
     private void closeNetworking() throws IOException {
-        reader.close();
         writer.close();
         socket.close();
+        reader.close();
     }
 
     private void sendMessage() {

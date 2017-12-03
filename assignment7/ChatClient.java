@@ -91,6 +91,7 @@ public class ChatClient extends Application {
                 @Override
                 public void handle(WindowEvent event) {
                     try {
+                        sendMessage("4");
                         closeNetworking();
                         for(Thread t : map.keySet()) {
                             IncomingReader incomingReader = map.get(t);

@@ -10,7 +10,7 @@
  * Group on Canvas:
  * Slip days used: <0>
  * Fall 2017
- * GitHub URL:
+ * GitHub URL: https://github.com/bdoobie01/EE422C_PR7.git
  */
 
 package assignment7;

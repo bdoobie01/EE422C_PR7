@@ -27,7 +27,7 @@ public class ChatServer {
     private ArrayList<PrintWriter> clientOutpoutStreams;
 
     /**
-     * Creates new Chatserver w/ call to setUpNetworking()
+     * Creates new ChatServer w/ call to setUpNetworking()
      * @param args
      */
     public static void main(String [] args) {

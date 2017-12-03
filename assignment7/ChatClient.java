@@ -16,15 +16,17 @@
 package assignment7;
 
 import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.Socket;
 
@@ -37,10 +39,20 @@ public class ChatClient extends Application {
     private TextArea incoming;
     private TextField outgoing;
 
+    private Button button;
+
     private BufferedReader reader;
     private PrintWriter writer;
 
     public static ByteArrayOutputStream byteArrayOutputStream;
+
+    public static void main(String [] args) {
+        try {
+            launch(args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public void init() throws Exception {}
@@ -51,19 +63,40 @@ public class ChatClient extends Application {
         //@TODO CREATE UI ELEMENTS
         /*Initialize UI here*/
         try {
-            primaryStage.initStyle(StageStyle.TRANSPARENT);
-            primaryStage.initModality(Modality.NONE);
-            primaryStage.setTitle("Chat Client");
 
             borderPane = new BorderPane();
 
+            primaryStage.initStyle(StageStyle.DECORATED);
+//            primaryStage.initModality(Modality.NONE);
+            primaryStage.setTitle("Chat Client");
+
+            center = new VBox();
+            center.setPadding(new Insets(10));
+            center.setSpacing(5);
 
             incoming = new TextArea();
-            incoming.
             outgoing = new TextField();
 
-            borderPane.setCenter();
+            button = new Button("Send");
+            button.setOnAction(actionEvent -> {
+                try {
+                    writer.println(outgoing.getText());
+                    writer.flush();
+                    outgoing.setText("");
+                    outgoing.requestFocus();
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+            });
 
+            center.getChildren().addAll(incoming, outgoing, button);
+
+            borderPane.setCenter(center);
+
+            Scene scene = new Scene(borderPane, 500,500);
+            primaryStage.setScene(scene);
+            primaryStage.sizeToScene();
+            primaryStage.show();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -88,20 +121,6 @@ public class ChatClient extends Application {
         readerThread.start();
     }
 
-    class SendButtonListener implements ActionListener {
-        /**
-         * When e is performed, outgoing text is printed to the writer and cleared
-         * @param e
-         */
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            writer.println(outgoing.getText());
-            writer.flush();
-            outgoing.setText("");
-            outgoing.requestFocus();
-        }
-    }
-
     private class IncomingReader implements Runnable {
         /**
          * Incoming lines are printed to UI while they exist
@@ -111,7 +130,8 @@ public class ChatClient extends Application {
             String message;
             try {
                 while ((message = reader.readLine()) != null) {
-                    incoming.append(message + "\n");
+                    incoming.appendText(message + "\n");
+
                 }
             } catch(IOException e) {
                 e.printStackTrace();

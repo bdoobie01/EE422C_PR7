@@ -212,6 +212,10 @@ public class ChatClient extends Application {
                 if(openChats.keySet().contains(chatID) || !Boolean.parseBoolean(content)) {return;}
 
                 MessageClient messageClient = new MessageClient(chatID);
+                try {
+					messageClient.start(new Stage());
+				} catch (Exception e) {
+				}
                 openChats.put(chatID, messageClient);
             });
         }
@@ -375,7 +379,7 @@ public class ChatClient extends Application {
             topPane = new StackPane();
             bottomPane = new StackPane();
 
-            topPane.getChildren().addAll(chatArea);
+            topPane.getChildren().addAll(chatArea = new TextArea());
             bottomPane.getChildren().addAll(messageField = new TextField(), sendMessage = new Button(">>"));
 
             splitPane.setOrientation(Orientation.VERTICAL);

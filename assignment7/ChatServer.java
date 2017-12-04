@@ -31,20 +31,17 @@ public class ChatServer {
 	private HashMap<String, List<String>> codeMap = new HashMap<String, List<String>>();
 	private HashMap<String, PrintWriter> liveUser = new HashMap<String, PrintWriter>();
 	private ArrayList<String> groupCodes = new ArrayList<String>();
-	private String[] codestart = {"0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"};
-	private String[] loginCombos = {"brian", "doobie",
-									"turan", "bieberlover123"};
-									
-	
+	private String[] codestart = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f" };
+	private String[] loginCombos = { "brian", "doobie", "turan", "bieberlover123" };
 
 	public ChatServer() {
-		for(int i=0;i<loginCombos.length;i=i+2){
-			loginData.put(loginCombos[i], loginCombos[i+1]);
+		for (int i = 0; i < loginCombos.length; i = i + 2) {
+			loginData.put(loginCombos[i], loginCombos[i + 1]);
 		}
-		for(String s : codestart){
+		for (String s : codestart) {
 			groupCodes.add(s);
 		}
-		
+
 	}
 
 	/**
@@ -129,12 +126,12 @@ public class ChatServer {
 						codeVal[0] = message.charAt(0);
 						message = message.replaceFirst(new String(codeVal), "");
 
-						switch (codeVal[0]) {			
-						
+						switch (codeVal[0]) {
+
 						case '0': // Message
 							handleMessage(message);
-							break;						
-							
+							break;
+
 						case '1': // Login
 							handleLogin(message);
 							break;
@@ -142,15 +139,15 @@ public class ChatServer {
 						case '2': // New Chat
 							handleNewChatGroup(message);
 							break;
-							
+
 						case '3': // New Login
 							handleNewUsernameRequest(message);
 							break;
-							
+
 						case '4': // Client Close
 							handleClientClose(message);
 							break;
-							
+
 						default:
 							break;
 						}
@@ -161,21 +158,19 @@ public class ChatServer {
 				System.out.println("Client " + userName + " has disconnected.");
 			}
 		}
-		
-		
-		private void handleMessage(String message){ //0
+
+		private void handleMessage(String message) { // 0
 			char[] ccode = new char[1];
 			ccode[0] = message.charAt(0);
-			if(codeMap.containsKey(new String(ccode))){
-				for(String user : codeMap.get(new String(ccode))){
-					toClient(liveUser.get(user),user,"0" + user + ": " + message);
+			if (codeMap.containsKey(new String(ccode))) {
+				for (String user : codeMap.get(new String(ccode))) {
+					toClient(liveUser.get(user), user, "0" + new String(ccode) + userName + ": " + message.substring(1));
 				}
 			}
 		}
-		
-		
-		private void handleLogin(String message){ //1
-			
+
+		private void handleLogin(String message) { // 1
+
 			boolean authenticated = false;
 			String[] spt = message.split("\\^");
 			String username = spt[0].toLowerCase();
@@ -183,7 +178,9 @@ public class ChatServer {
 
 			if (loginData.containsKey(username)) {
 				if (loginData.get(username).equals(pwd)) {
-					authenticated = true;
+					if (!liveUser.containsKey(username)) {
+						authenticated = true;
+					}
 				}
 			}
 			if (!authenticated) {
@@ -194,9 +191,8 @@ public class ChatServer {
 				userName = new String(username);
 			}
 		}
-		
-		
-		private void handleNewChatGroup(String message){ //2
+
+		private void handleNewChatGroup(String message) { // 2
 			List<String> names = new ArrayList<String>();
 			names.add(userName);
 			String[] naa = message.split("\\^");
@@ -204,81 +200,78 @@ public class ChatServer {
 				if (liveUser.containsKey(s)) {
 					names.add(s);
 				} else {
-					sendToClient("2false");
+					sendToClient("20false");
 					return;
 				}
 			}
 			String code = groupCodes.get(0);
 			groupCodes.remove(code);
 			codeMap.put(code, names);
-			sendToClient("2" + code + "2true");
+			sendToClient("2" + code + "true");
+			for(String nm : names){
+				if(nm!=userName){
+					toClient(liveUser.get(nm),nm,"2" + code + "true");
+				}
+			}
 		}
-		
-		private void handleNewUsernameRequest(String message){ //3
+
+		private void handleNewUsernameRequest(String message) { // 3
 			String[] spt = message.split("\\^");
 			String username = spt[0].toLowerCase();
 			String pwd = spt[1];
-			
-			if(!loginData.containsKey(username)){
-				loginData.put(username,pwd);
+
+			if (!loginData.containsKey(username)) {
+				loginData.put(username, pwd);
 				sendToClient("3true");
 				liveUser.put(username, cwriter);
 				userName = new String(username);
-			}
-			else{
+			} else {
 				sendToClient("3false");
 			}
 		}
-		
-		
-		private void handleClientClose(String message){ //4
-			if(userName != null){
-				
-				//Remove all group chats
+
+		private void handleClientClose(String message) { // 4
+			if (userName != null) {
+
+				// Remove all group chats
 				List<String> badCodes = new ArrayList<String>();
-				for(String cds: codeMap.keySet()){
-					for(String s: codeMap.get(cds)){
-						if(s.equals(userName)){
+				for (String cds : codeMap.keySet()) {
+					for (String s : codeMap.get(cds)) {
+						if (s.equals(userName)) {
 							badCodes.add(cds);
-							for(String s2: codeMap.get(cds)){
-								if(!s2.equals(userName)){
-									toClient(liveUser.get(s2),s2,"4" + cds);
+							for (String s2 : codeMap.get(cds)) {
+								if (!s2.equals(userName)) {
+									toClient(liveUser.get(s2), s2, "4" + cds);
 								}
 							}
 						}
 					}
 				}
-				
-				for(String s: badCodes){
+
+				for (String s : badCodes) {
 					codeMap.remove(s);
 					groupCodes.add(s);
 				}
-				
-				//Remove user from server
+
+				// Remove user from server
 				liveUser.remove(userName);
 				try {
 					reader.close();
-				} catch (IOException e) {}
+				} catch (IOException e) {
+				}
 				cwriter.close();
 			}
 		}
 
-
-
-		
-		
-		
-		
-		private void sendToClient(String msg){
+		private void sendToClient(String msg) {
 			cwriter.println(msg);
 			cwriter.flush();
 			System.out.println(userName + ": " + msg);
-		}	
-		
-		
+		}
+
 	}
-	
-	static private void toClient(PrintWriter w, String user, String msg){
+
+	static private void toClient(PrintWriter w, String user, String msg) {
 		w.println(msg);
 		w.flush();
 		System.out.println(user + ": " + msg);

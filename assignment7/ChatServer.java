@@ -198,6 +198,7 @@ public class ChatServer {
 		
 		private void handleNewChatGroup(String message){ //2
 			List<String> names = new ArrayList<String>();
+			names.add(userName);
 			String[] naa = message.split("\\^");
 			for (String s : naa) {
 				if (liveUser.containsKey(s)) {
@@ -261,6 +262,9 @@ public class ChatServer {
 				cwriter.close();
 			}
 		}
+		
+		
+		
 		
 		private void sendToClient(String msg){
 			cwriter.println(msg);

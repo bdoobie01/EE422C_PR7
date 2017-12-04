@@ -63,7 +63,6 @@ public class ChatClient extends Application {
 
     private BufferedReader reader;
     private PrintWriter writer;
-    Map<Character, CharBuffer> buffer = new HashMap<Character, CharBuffer>();
 
     /*
     0: Chat message "0<chatCode><message>"
@@ -218,12 +217,6 @@ public class ChatClient extends Application {
 
             writer = new PrintWriter(socket.getOutputStream());
 
-            buffer.put('0', CharBuffer.allocate(1024));
-            buffer.put('1', CharBuffer.allocate(1024));
-            buffer.put('2', CharBuffer.allocate(1024));
-            buffer.put('3', CharBuffer.allocate(1024));
-            buffer.put('4', CharBuffer.allocate(1024));
-
             System.out.println("Client: networking established");
 
             IncomingReader incomingReader = new IncomingReader();
@@ -263,9 +256,36 @@ public class ChatClient extends Application {
                 String message;
                 try {
                     while ((message = reader.readLine()) != null) {
-                        //@TODO process incoming text, send to appropriate Buffers
-                        Character c = message.charAt(0);
-                        buffer.get(c).append(message.substring(0));
+                        try{
+                            char c = message.charAt(0);
+
+                            switch (c) {
+                                case '0': // DM
+                                    handleMessage(message);
+                                    break;
+
+                                case '1': // Login
+                                    handleLogin(message);
+                                    break;
+
+                                case '2': // New Chat
+                                    handleNewChatGroup(message);
+                                    break;
+
+                                case '3': // New Login
+                                    handleNewUsernameRequest(message);
+                                    break;
+
+                                case '4': // Client Close
+                                    handleClientClose(message);
+                                    break;
+
+                                default:
+                                    break;
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -273,27 +293,39 @@ public class ChatClient extends Application {
             }
         }
 
+        private void handleMessage(String message) {
+
+        }
+
+        private void handleLogin(String message) {
+            Platform.runLater(() -> {
+                boolean authenticated = Boolean.parseBoolean(message.substring(1));
+                if(!authenticated) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Invalid username or password.");
+                    alert.showAndWait();
+                }
+            });
+        }
+
+        private void handleNewChatGroup(String message) {
+        }
+
+        private void handleNewUsernameRequest(String message) {
+            Platform.runLater(() -> {
+                boolean authenticated = Boolean.parseBoolean(message.substring(1));
+                if (!authenticated) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Invalid username.");
+                    alert.showAndWait();
+                }
+            });
+        }
+
+        private void handleClientClose(String message) {
+
+        }
+
         public void terminate() {
             running = false;
-        }
-    }
-
-    private class MessageReader implements Runnable {
-        private volatile boolean running = true;
-
-        @Override
-        public void run() {
-            CharBuffer messages = buffer.get('0');
-            while(running) {
-                String message;
-                try {
-                    while (messages.array()[0] != '\0') {
-                        incoming.appendText(new String(messages.array()).replace("\0",""));
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
@@ -324,84 +356,24 @@ public class ChatClient extends Application {
             login.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    try {
-                        login();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    sendMessage("1"+username.getText()+"^"+password.getText());
+                    user = username.getText();
+                    stage.close();
                 }
             });
             register = new Button("register");
             register.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
-                    try {
-                        register();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    sendMessage("3"+username.getText()+"^"+password.getText());
+                    user = username.getText();
+                    stage.close();
                 }
             });
 
             loginBox.getChildren().addAll(username, password, login, register);
             stage.setScene(new Scene(loginBox));
             stage.show();
-        }
-
-        private void login() {
-
-            CharBuffer response = buffer.get('1');
-            sendMessage("1"+username.getText()+"^"+password.getText());
-            waitForServer(response);
-            try {
-                String s = new String(response.array()).replace("\0", "");;
-                Boolean authenticated = Boolean.parseBoolean(s.substring(1));
-                if(authenticated) {
-                    user = "<"+username.getText()+">";
-                    System.out.println(user + " logged in");
-                    stage.close();
-                } else {
-                    Alert alert = new Alert(Alert.AlertType.ERROR, "Invalid username or password.");
-                    alert.showAndWait();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        private void register() {
-
-            CharBuffer response = buffer.get('3');
-            sendMessage("3"+username.getText()+"^"+password.getText());
-            waitForServer(response);
-            try {
-                String s = new String(response.array()).replace("\0", "");
-                Boolean authenticated = Boolean.parseBoolean(s.substring(1));
-                if(authenticated) {
-                    user = "<"+username.getText()+"";
-                    System.out.println(user + " logged in");
-                    stage.close();
-                } else {
-                    Alert alert = new Alert(Alert.AlertType.ERROR, "Username is in use.");
-                    alert.showAndWait();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        private void waitForServer(CharBuffer b) {
-            for(int i = 0; i < 10; i ++) {
-                if(b.array()[0]!= '\0') {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    return;
-                }
-            }
         }
     }
 }

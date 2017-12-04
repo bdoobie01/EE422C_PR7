@@ -262,9 +262,6 @@ public class ChatServer {
 			}
 		}
 		
-		
-		
-		
 		private void sendToClient(String msg){
 			cwriter.println(msg);
 			cwriter.flush();

@@ -448,7 +448,7 @@ public class ChatClient extends Application {
                     String message;
 
                     if(s.length == 1) {
-                        message = "0"+"<"+s[0]+">"+"<>";
+                        message = "2"+s[0];
                     } else {
                         message = "2" + s[0];
                         for (int i = 1; i < s.length; i++) {

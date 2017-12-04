@@ -113,13 +113,6 @@ public class ChatClient extends Application {
         reader.close();
     }
 
-    /*private void sendMessage() {
-        writer.println("0" + user + outgoing.getText());
-        writer.flush();
-        outgoing.setText("");
-        outgoing.requestFocus();
-    }*/
-
     private static void sendMessage(String s) {
         writer.println(s);
         writer.flush();
@@ -398,6 +391,12 @@ public class ChatClient extends Application {
 
         public void importMessage(String messageContent) {
             chatArea.appendText(messageContent + "\n");
+        }
+
+        @Override
+        public void stop() {
+            sendMessage("4");
+            openChats.remove(chatID);
         }
     }
 

@@ -15,33 +15,23 @@
 
 package assignment7;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-import javafx.stage.WindowEvent;
-import sun.management.snmp.util.SnmpTableCache;
-import sun.rmi.runtime.Log;
+
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.CharBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,7 +51,7 @@ public class ChatClient extends Application {
     4: 4<code>" when a different client in that group chat disconnects
     */
 
-    private static String user = "<>";
+    private static String user = "";
 
     private static Map<String, MessageClient> openChats;
 
@@ -407,7 +397,7 @@ public class ChatClient extends Application {
             stage.show();
 
             sendMessage.setOnAction(actionEvent -> {
-                String message = "0" + "<"+chatID+">"+"<"+messageField.getText()+">";
+                String message = "0" +chatID+messageField.getText();
                 messageField.setText("");
 
                 sendMessage(message);

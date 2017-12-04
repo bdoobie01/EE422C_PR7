@@ -63,6 +63,8 @@ public class ChatClient extends Application {
 
     private static String user = "<>";
 
+    private static Map<String, MessageClient> openChats;
+
     private static BufferedReader reader;
     private static PrintWriter writer;
 
@@ -73,6 +75,7 @@ public class ChatClient extends Application {
 
     public static void main(String[] args) {
         try {
+            openChats = new HashMap<String, MessageClient>();
             launch(args);
         } catch (Exception e) {
             e.printStackTrace();
@@ -146,6 +149,7 @@ public class ChatClient extends Application {
                     while ((message = reader.readLine()) != null) {
                         try {
                             char c = message.charAt(0);
+                            message = message.substring(1);
 
                             switch (c) {
                                 case '0': // DM
@@ -181,13 +185,36 @@ public class ChatClient extends Application {
             }
         }
 
-        private void handleMessage(String message) {
+        private static void handleMessage(String message) {
+            String [] s = message.split("\\W+");
+            String chatID = s[0];
+            String content = "";
+
+            for (int i = 1; i<s.length; i++) {
+                content += s[i];
+            }
+
+            MessageClient messageClient;
+
+            if(openChats.keySet().contains(s[0])) {
+                messageClient = openChats.get(chatID);
+                messageClient.importMessage(content);
+            } else {
+                try {
+                    messageClient = new MessageClient(chatID);
+                    messageClient.start(new Stage());
+                    messageClient.importMessage(content);
+                    openChats.put(chatID, messageClient);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
 
         }
 
-        private void handleLogin(String message) {
+        private static void handleLogin(String message) {
             Platform.runLater(() -> {
-                boolean authenticated = Boolean.parseBoolean(message.substring(1));
+                boolean authenticated = Boolean.parseBoolean(message);
                 if (authenticated) {
                     try {
                         user = loginClient.username.getText();
@@ -205,15 +232,15 @@ public class ChatClient extends Application {
             });
         }
 
-        private void handleNewChatGroup(String message) {
+        private static void handleNewChatGroup(String message) {
             Platform.runLater(() -> {
 
             });
         }
 
-        private void handleNewUsernameRequest(String message) {
+        private static void handleNewUsernameRequest(String message) {
             Platform.runLater(() -> {
-                boolean authenticated = Boolean.parseBoolean(message.substring(1));
+                boolean authenticated = Boolean.parseBoolean(message);
                 if (authenticated) {
                     try {
                         user = loginClient.username.getText();
@@ -230,7 +257,7 @@ public class ChatClient extends Application {
             });
         }
 
-        private void handleClientClose(String message) {
+        private static void handleClientClose(String message) {
 
         }
 
@@ -290,15 +317,16 @@ public class ChatClient extends Application {
 
         BorderPane borderPane;
         HBox upperBox;
-        Label userLabel;
-        Button newGroup;
         Accordion accordion;
 
         TitledPane friendsPane;
         TitledPane onlinePane;
+        TitledPane groupPane;
         VBox friendsBox;
         VBox onlineBox;
+        VBox groupBox;
 
+        Button newGroup;
 
         @Override
         public void start(Stage primaryStage) throws Exception {
@@ -307,8 +335,6 @@ public class ChatClient extends Application {
 
             borderPane = new BorderPane();
             upperBox = new HBox();
-            userLabel = new Label(user);
-            newGroup = new Button("+");
             accordion = new Accordion();
 
             friendsPane = new TitledPane();
@@ -319,9 +345,13 @@ public class ChatClient extends Application {
             onlinePane.setText("Online");
             onlinePane.setContent(onlineBox = new VBox());
 
-            upperBox.getChildren().addAll(userLabel, newGroup);
-            accordion.getPanes().addAll(friendsPane,onlinePane);
+            groupPane = new TitledPane();
+            groupPane.setText("GroupChat/DM");
+            groupPane.setContent(newGroup = new Button("Create Group"));
 
+            //groupBox.getChildren().addAll(newGroup = new Button("Create Group"));
+
+            accordion.getPanes().addAll(friendsPane, onlinePane, groupPane);
 
             borderPane.setTop(upperBox);
             borderPane.setCenter(accordion);
@@ -344,30 +374,48 @@ public class ChatClient extends Application {
     private static class MessageClient extends Application {
 
         private Stage stage;
-        private String title;
+        private String chatID;
 
         SplitPane splitPane;
         StackPane topPane;
         StackPane bottomPane;
 
+        TextArea chatArea;
+        TextField messageField;
+        Button sendMessage;
+
         public MessageClient(String s) {
-            title = s;
+            chatID = s;
         }
 
         @Override
         public void start(Stage primaryStage) throws Exception {
             stage = primaryStage;
-            stage.setTitle(title);
+            stage.setTitle(chatID);
 
             splitPane = new SplitPane();
             topPane = new StackPane();
             bottomPane = new StackPane();
+
+            topPane.getChildren().addAll(chatArea);
+            bottomPane.getChildren().addAll(messageField = new TextField(), sendMessage = new Button(">>"));
 
             splitPane.setOrientation(Orientation.VERTICAL);
             splitPane.getItems().addAll(topPane,bottomPane);
 
             stage.setScene(new Scene(splitPane));
             stage.show();
+
+            sendMessage.setOnAction(actionEvent -> {
+                String message = "0" + "<"+chatID+">"+"<"+messageField.getText()+">";
+                messageField.setText("");
+
+                sendMessage(message);
+            });
+        }
+
+        public void importMessage(String messageContent) {
+            chatArea.appendText(messageContent + "\n");
         }
     }
 
@@ -382,7 +430,7 @@ public class ChatClient extends Application {
         @Override
         public void start(Stage primaryStage) throws Exception {
             stage = primaryStage;
-            stage.setTitle("Make group chat");
+            stage.setTitle("Make group chat/DM");
 
             box = new HBox();
             usernames = new TextField("friend1 friend2");
@@ -396,10 +444,16 @@ public class ChatClient extends Application {
             create.setOnAction(actionEvent -> {
                 try {
                     String [] s = usernames.getText().split("\\W+");
-                    String message = "2" + s[0];
 
-                    for(int i = 1; i < s.length; i++) {
-                        message+="^"+s[i];
+                    String message;
+
+                    if(s.length == 1) {
+                        message = "0"+"<"+s[0]+">"+"<>";
+                    } else {
+                        message = "2" + s[0];
+                        for (int i = 1; i < s.length; i++) {
+                            message += "^" + s[i];
+                        }
                     }
 
                     sendMessage(message);

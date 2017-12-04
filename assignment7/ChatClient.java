@@ -176,29 +176,11 @@ public class ChatClient extends Application {
         }
 
         private static void handleMessage(String message) {
-            String [] s = message.split("\\W+");
-            String chatID = s[0];
-            String content = "";
+            String chatID = "" + message.charAt(0);
+            String content = message.substring(1);
 
-            for (int i = 1; i<s.length; i++) {
-                content += s[i];
-            }
-
-            MessageClient messageClient;
-
-            if(openChats.keySet().contains(s[0])) {
-                messageClient = openChats.get(chatID);
-                messageClient.importMessage(content);
-            } else {
-                try {
-                    messageClient = new MessageClient(chatID);
-                    messageClient.start(new Stage());
-                    messageClient.importMessage(content);
-                    openChats.put(chatID, messageClient);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+            MessageClient messageClient = openChats.get(chatID);
+            messageClient.importMessage(content);
 
         }
 
@@ -224,7 +206,13 @@ public class ChatClient extends Application {
 
         private static void handleNewChatGroup(String message) {
             Platform.runLater(() -> {
+                String chatID = "" + message.charAt(0);
+                String content = message.substring(1);
 
+                if(openChats.keySet().contains(chatID) || !Boolean.parseBoolean(content)) {return;}
+
+                MessageClient messageClient = new MessageClient(chatID);
+                openChats.put(chatID, messageClient);
             });
         }
 

@@ -15,6 +15,7 @@
 
 package assignment7;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -22,9 +23,7 @@ import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
@@ -36,6 +35,9 @@ import javafx.stage.WindowEvent;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.CharBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,10 +58,26 @@ public class ChatClient extends Application {
     private Button sendButton;
     private Button newPeer;
 
-    String user;
+    /*Chat Client Variables*/
+    private String user = "<null>";
 
     private BufferedReader reader;
     private PrintWriter writer;
+    Map<Character, CharBuffer> buffer = new HashMap<Character, CharBuffer>();
+
+    /*
+    0: Chat message "0<chatCode><message>"
+    1: Login request "1<username>^<password>"
+    2: ChatGroup request "2<username1>^<username2>^<username3>...."
+    3: Create username request "3<username>^<password>"
+    4: Client closing "4"
+
+    0: Chat message "0<chatCode><message>"
+    1: Authentication "1Invalid username or password" or "1Authenticated"
+    2: ChatGroup reply "2New Chatgroup created" or "2Unable to create new Chatgroup"
+    3: Create username reply "3Username created" or "3Username is unavailable"
+    4: 4<code>" when a different client in that group chat disconnects
+    */
 
     private static Map<Thread, IncomingReader> map = new HashMap<Thread, IncomingReader>();
     Socket socket;
@@ -73,7 +91,35 @@ public class ChatClient extends Application {
     }
 
     @Override
-    public void init() throws Exception {}
+    public void init() throws Exception {
+        borderPane = new BorderPane();
+
+        chatTray = new VBox();
+        chatTray.setPadding(new Insets(10));
+        chatTray.setSpacing(5);
+
+        centerTray = new VBox();
+        centerTray.setPadding(new Insets(10));
+        centerTray.setSpacing(5);
+
+        peerTray = new HBox();
+        peerTray.setPadding(new Insets(10));
+        peerTray.setSpacing(5);
+
+        outgoingTray = new HBox();
+        outgoingTray.setPadding(new Insets(10));
+        outgoingTray.setSpacing(5);
+
+        newChat = new Button("New");
+
+        incoming = new TextArea();
+        incoming.setEditable(false);
+
+        newPeer = new Button("+");
+
+        outgoing = new TextField();
+        sendButton = new Button(">>");
+    }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -82,10 +128,7 @@ public class ChatClient extends Application {
         /*Initialize UI here*/
         try {
 
-            borderPane = new BorderPane();
-
             primaryStage.initStyle(StageStyle.DECORATED);
-//            primaryStage.initModality(Modality.NONE);
             primaryStage.setTitle("tDoobie's Super Encrypted Client");
             primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
                 @Override
@@ -121,28 +164,6 @@ public class ChatClient extends Application {
                 }
             });
 
-            chatTray = new VBox();
-            chatTray.setPadding(new Insets(10));
-            chatTray.setSpacing(5);
-
-            centerTray = new VBox();
-            centerTray.setPadding(new Insets(10));
-            centerTray.setSpacing(5);
-
-            peerTray = new HBox();
-            peerTray.setPadding(new Insets(10));
-            peerTray.setSpacing(5);
-
-            outgoingTray = new HBox();
-            outgoingTray.setPadding(new Insets(10));
-            outgoingTray.setSpacing(5);
-
-            newChat = new Button("New");
-
-            incoming = new TextArea();
-            incoming.setEditable(false);
-
-            outgoing = new TextField();
             outgoing.setOnKeyReleased(new EventHandler<KeyEvent>() {
                 @Override
                 public void handle(KeyEvent event) {
@@ -156,7 +177,6 @@ public class ChatClient extends Application {
                 }
             });
 
-            sendButton = new Button(">>");
             sendButton.setOnAction(actionEvent -> {
                 try {
                     sendMessage();
@@ -164,9 +184,6 @@ public class ChatClient extends Application {
                     e.printStackTrace();
                 }
             });
-
-            newPeer = new Button("+");
-
 
             peerTray.getChildren().addAll(newPeer);
             peerTray.setAlignment(Pos.BASELINE_RIGHT);
@@ -188,24 +205,32 @@ public class ChatClient extends Application {
         }
 
         /*set up networking here*/
-        //setUpNetworking();
+        setUpNetworking();
     }
 
     private void setUpNetworking() throws Exception {
         //@SuppressWarnings("resource")
-        socket = new Socket("127.0.0.1", 4242);
+        if(socket == null) {
+            socket = new Socket("127.0.0.1", 4242);
 
-        InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
-        reader = new BufferedReader(streamReader);
+            InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
+            reader = new BufferedReader(streamReader);
 
-        writer = new PrintWriter(socket.getOutputStream());
+            writer = new PrintWriter(socket.getOutputStream());
 
-        System.out.println("Client: networking established");
+            buffer.put('0', CharBuffer.allocate(1024));
+            buffer.put('1', CharBuffer.allocate(1024));
+            buffer.put('2', CharBuffer.allocate(1024));
+            buffer.put('3', CharBuffer.allocate(1024));
+            buffer.put('4', CharBuffer.allocate(1024));
 
-        IncomingReader incomingReader = new IncomingReader();
-        Thread readerThread = new Thread(incomingReader);
-        map.put(readerThread, incomingReader);
-        readerThread.start();
+            System.out.println("Client: networking established");
+
+            IncomingReader incomingReader = new IncomingReader();
+            Thread readerThread = new Thread(incomingReader);
+            map.put(readerThread, incomingReader);
+            readerThread.start();
+        }
     }
 
     private void closeNetworking() throws IOException {
@@ -215,7 +240,7 @@ public class ChatClient extends Application {
     }
 
     private void sendMessage() {
-        writer.println(outgoing.getText());
+        writer.println("0" + user + outgoing.getText());
         writer.flush();
         outgoing.setText("");
         outgoing.requestFocus();
@@ -238,8 +263,9 @@ public class ChatClient extends Application {
                 String message;
                 try {
                     while ((message = reader.readLine()) != null) {
-                        incoming.appendText(message + "\n");
-
+                        //@TODO process incoming text, send to appropriate Buffers
+                        Character c = message.charAt(0);
+                        buffer.get(c).append(message.substring(0));
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -252,7 +278,28 @@ public class ChatClient extends Application {
         }
     }
 
+    private class MessageReader implements Runnable {
+        private volatile boolean running = true;
+
+        @Override
+        public void run() {
+            CharBuffer messages = buffer.get('0');
+            while(running) {
+                String message;
+                try {
+                    while (messages.array()[0] != '\0') {
+                        incoming.appendText(new String(messages.array()).replace("\0",""));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     private class LoginClient extends Application {
+
+        private Stage stage;
 
         private VBox loginBox;
 
@@ -264,6 +311,8 @@ public class ChatClient extends Application {
 
         @Override
         public void start(Stage primaryStage) throws Exception {
+            stage = primaryStage;
+
             loginBox = new VBox();
             loginBox.setPadding(new Insets(10));
             loginBox.setSpacing(5);
@@ -295,18 +344,64 @@ public class ChatClient extends Application {
             });
 
             loginBox.getChildren().addAll(username, password, login, register);
-            primaryStage.setScene(new Scene(loginBox));
-            primaryStage.show();
+            stage.setScene(new Scene(loginBox));
+            stage.show();
         }
 
-        private void login() throws Exception {
-            setUpNetworking();
-            sendMessage("1"+username.getText()+"^"+password.getText());
+        private void login() {
 
+            CharBuffer response = buffer.get('1');
+            sendMessage("1"+username.getText()+"^"+password.getText());
+            waitForServer(response);
+            try {
+                String s = new String(response.array()).replace("\0", "");;
+                Boolean authenticated = Boolean.parseBoolean(s.substring(1));
+                if(authenticated) {
+                    user = "<"+username.getText()+">";
+                    System.out.println(user + " logged in");
+                    stage.close();
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Invalid username or password.");
+                    alert.showAndWait();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         private void register() {
 
+            CharBuffer response = buffer.get('3');
+            sendMessage("3"+username.getText()+"^"+password.getText());
+            waitForServer(response);
+            try {
+                String s = new String(response.array()).replace("\0", "");
+                Boolean authenticated = Boolean.parseBoolean(s.substring(1));
+                if(authenticated) {
+                    user = "<"+username.getText()+"";
+                    System.out.println(user + " logged in");
+                    stage.close();
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Username is in use.");
+                    alert.showAndWait();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void waitForServer(CharBuffer b) {
+            for(int i = 0; i < 10; i ++) {
+                if(b.array()[0]!= '\0') {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    return;
+                }
+            }
         }
     }
 }

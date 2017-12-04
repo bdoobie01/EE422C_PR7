@@ -187,9 +187,9 @@ public class ChatServer {
 				}
 			}
 			if (!authenticated) {
-				sendToClient("1Invalid username or password");
+				sendToClient("1false");
 			} else {
-				sendToClient("1Authenticated");
+				sendToClient("1true");
 				liveUser.put(username, cwriter);
 				userName = new String(username);
 			}
@@ -203,14 +203,14 @@ public class ChatServer {
 				if (liveUser.containsKey(s)) {
 					names.add(s);
 				} else {
-					sendToClient("2Unable to create new Groupchat");
+					sendToClient("2false");
 					return;
 				}
 			}
 			String code = groupCodes.get(0);
 			groupCodes.remove(code);
 			codeMap.put(code, names);
-			sendToClient("2" + code + "New Chatgroup created");
+			sendToClient("2" + code + "2true");
 		}
 		
 		private void handleNewUsernameRequest(String message){ //3
@@ -220,12 +220,12 @@ public class ChatServer {
 			
 			if(!loginData.containsKey(username)){
 				loginData.put(username,pwd);
-				sendToClient("3Username created");
+				sendToClient("3true");
 				liveUser.put(username, cwriter);
 				userName = new String(username);
 			}
 			else{
-				sendToClient("3Username is unavailable");
+				sendToClient("3false");
 			}
 		}
 		

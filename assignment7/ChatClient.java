@@ -15,6 +15,8 @@
 
 package assignment7;
 
+import com.sun.org.apache.bcel.internal.generic.FLOAD;
+import com.sun.tools.javac.comp.Flow;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -23,15 +25,14 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -63,9 +64,15 @@ public class ChatClient extends Application {
 
     private static LoginClient loginClient;
 
+    private static ArrayList<Thread> threads;
+    private static volatile boolean running;
+
     public static void main(String[] args) {
         try {
             openChats = new HashMap<String, MessageClient>();
+            threads = new ArrayList<Thread>();
+            running = true;
+
             launch(args);
         } catch (Exception e) {
             e.printStackTrace();
@@ -119,7 +126,6 @@ public class ChatClient extends Application {
     }
 
     private static class IncomingReader implements Runnable {
-        private volatile boolean running = true;
 
         /**
          * Incoming lines are printed to UI while they exist
@@ -283,6 +289,14 @@ public class ChatClient extends Application {
             stage.setScene(new Scene(loginBox));
             stage.show();
 
+            stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+                @Override
+                public void handle(WindowEvent t) {
+                    Platform.exit();
+                    running = false;
+                    System.exit(0);
+                }
+            });
         }
     }
 
@@ -343,6 +357,15 @@ public class ChatClient extends Application {
                     e.printStackTrace();
                 }
             });
+
+            stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+                @Override
+                public void handle(WindowEvent t) {
+                    Platform.exit();
+                    running = false;
+                    System.exit(0);
+                }
+            });
         }
     }
 
@@ -353,7 +376,7 @@ public class ChatClient extends Application {
 
         SplitPane splitPane;
         StackPane topPane;
-        StackPane bottomPane;
+        FlowPane bottomPane;
 
         TextArea chatArea;
         TextField messageField;
@@ -370,7 +393,7 @@ public class ChatClient extends Application {
 
             splitPane = new SplitPane();
             topPane = new StackPane();
-            bottomPane = new StackPane();
+            bottomPane = new FlowPane();
 
             topPane.getChildren().addAll(chatArea = new TextArea());
             bottomPane.getChildren().addAll(messageField = new TextField(), sendMessage = new Button(">>"));
@@ -387,16 +410,18 @@ public class ChatClient extends Application {
 
                 sendMessage(message);
             });
+
+            stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+                @Override
+                public void handle(WindowEvent t) {
+                    sendMessage("4");
+                    openChats.remove(chatID);
+                }
+            });
         }
 
         public void importMessage(String messageContent) {
             chatArea.appendText(messageContent + "\n");
-        }
-
-        @Override
-        public void stop() {
-            sendMessage("4");
-            openChats.remove(chatID);
         }
     }
 
@@ -442,6 +467,11 @@ public class ChatClient extends Application {
                     e.printStackTrace();
                 }
             });
+        }
+
+        @Override
+        public void stop() {
+
         }
     }
 }

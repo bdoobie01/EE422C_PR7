@@ -15,8 +15,6 @@
 
 package assignment7;
 
-import com.sun.org.apache.bcel.internal.generic.FLOAD;
-import com.sun.tools.javac.comp.Flow;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -25,6 +23,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -63,14 +62,15 @@ public class ChatClient extends Application {
     private static Socket socket;
 
     private static LoginClient loginClient;
+    private static ContactClient contactClient;
 
-    private static ArrayList<Thread> threads;
+    private static ArrayList<String> onlineUsers;
     private static volatile boolean running;
 
     public static void main(String[] args) {
         try {
             openChats = new HashMap<String, MessageClient>();
-            threads = new ArrayList<Thread>();
+            onlineUsers = new ArrayList<String>();
             running = true;
 
             launch(args);
@@ -161,6 +161,9 @@ public class ChatClient extends Application {
                                     handleClientClose(message);
                                     break;
 
+                                case 5:
+                                    handleOnlineList(message);
+
                                 default:
                                     break;
                             }
@@ -194,7 +197,7 @@ public class ChatClient extends Application {
                     try {
                         user = loginClient.username.getText();
                         loginClient.stage.close();
-                        ContactClient contactClient = new ContactClient();
+                        contactClient = new ContactClient();
                         contactClient.start(new Stage());
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -251,6 +254,15 @@ public class ChatClient extends Application {
 
         private static void handleClientClose(String message) {
 
+        }
+
+        private static void handleOnlineList(String message) {
+            String [] parse = message.split("\\^");
+            onlineUsers.clear();
+
+            for(int i = 0; i < parse.length; i++) {
+                onlineUsers.add(parse[i]);
+            }
         }
 
         public void terminate() {
@@ -320,9 +332,9 @@ public class ChatClient extends Application {
         HBox upperBox;
         Accordion accordion;
 
-        TitledPane friendsPane;
+        //TitledPane friendsPane;
         TitledPane onlinePane;
-        TitledPane groupPane;
+        //TitledPane groupPane;
         VBox friendsBox;
         VBox onlineBox;
         VBox groupBox;
@@ -335,27 +347,31 @@ public class ChatClient extends Application {
             stage.setTitle(user);
 
             borderPane = new BorderPane();
-            upperBox = new HBox();
+            //upperBox = new HBox();
             accordion = new Accordion();
 
-            friendsPane = new TitledPane();
-            friendsPane.setText("Friends");
-            friendsPane.setContent(friendsBox = new VBox());
+//            friendsPane = new TitledPane();
+//            friendsPane.setText("Friends");
+//            friendsPane.setContent(friendsBox = new VBox());
 
             onlinePane = new TitledPane();
             onlinePane.setText("Online");
             onlinePane.setContent(onlineBox = new VBox());
+            for(String user : onlineUsers) {
+                onlineBox.getChildren().addAll(new Label(user));
+            }
 
-            groupPane = new TitledPane();
-            groupPane.setText("GroupChat/DM");
-            groupPane.setContent(newGroup = new Button("Create Group"));
+//            groupPane = new TitledPane();
+//            groupPane.setText("GroupChat/DM");
+//            groupPane.setContent(newGroup = new Button("Create Group"));
 
             //groupBox.getChildren().addAll(newGroup = new Button("Create Group"));
 
-            accordion.getPanes().addAll(friendsPane, onlinePane, groupPane);
+            accordion.getPanes().addAll( onlinePane);
 
-            borderPane.setTop(upperBox);
-            borderPane.setCenter(accordion);
+            //borderPane.setTop(upperBox);
+            borderPane.setTop(accordion);
+            borderPane.setBottom(newGroup = new Button("Create Chat"));
 
             stage.setScene(new Scene(borderPane));
             stage.show();
@@ -377,6 +393,13 @@ public class ChatClient extends Application {
                     sendMessage("4");
                     running = false;
                     System.exit(0);
+                }
+            });
+
+            onlinePane.setOnContextMenuRequested(new EventHandler<ContextMenuEvent>() {
+                @Override
+                public void handle(ContextMenuEvent event) {
+                    sendMessage("5");
                 }
             });
         }

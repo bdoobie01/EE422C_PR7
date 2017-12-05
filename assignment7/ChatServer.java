@@ -214,11 +214,12 @@ public class ChatServer {
 			String code = groupCodes.get(0);
 			groupCodes.remove(code);
 			codeMap.put(code, names);
-			sendToClient("2" + code + "true");
 			String smessage = "2" + code + "true";
 			for (String nm : names) {
 				smessage += "^" + nm;
 			}
+
+			sendToClient(smessage);
 			for (String nm : names) {
 				if (nm != userName) {
 					toClient(liveUser.get(nm), nm, smessage);

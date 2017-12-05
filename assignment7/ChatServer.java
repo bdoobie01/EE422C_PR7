@@ -30,6 +30,7 @@ public class ChatServer {
 	private HashMap<String, String> loginData = new HashMap<String, String>();
 	private HashMap<String, List<String>> codeMap = new HashMap<String, List<String>>();
 	private HashMap<String, PrintWriter> liveUser = new HashMap<String, PrintWriter>();
+	private HashMap<String, List<String>> openChat = new HashMap<String, List<String>>();
 	private ArrayList<String> groupCodes = new ArrayList<String>();
 	private String[] codestart = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f" };
 	private String[] loginCombos = { "brian", "doobie", "turan", "bieberlover123" };
@@ -152,6 +153,9 @@ public class ChatServer {
 							handleLiveUserRequest(message);
 							break;
 
+						case '6':
+							handleGroupClose(message);
+
 						default:
 							break;
 						}
@@ -169,8 +173,27 @@ public class ChatServer {
 			if (codeMap.containsKey(new String(ccode))) {
 				for (String user : codeMap.get(new String(ccode))) {
 					if (liveUser.containsKey(user)) {
-						toClient(liveUser.get(user), user,
-								"0" + new String(ccode) + userName + ": " + message.substring(1));
+						if (openChat.get(user).contains(ccode)) {
+							toClient(liveUser.get(user), user,
+									"0" + new String(ccode) + userName + ": " + message.substring(1));
+						}
+						else{
+							if(openChat.containsKey(user)){
+								openChat.get(user).add(new String(ccode));
+							}
+							else{
+								List<String> ccode2 = new ArrayList<String>();
+								ccode2.add(new String(ccode));
+								openChat.put(user, ccode2);
+							}
+							String mes = "2" + new String(ccode) + "true";
+							for(String nm : codeMap.get(new String(ccode))){
+								mes += "^" + nm;								
+							}
+							toClient(liveUser.get(user), user, mes);
+							toClient(liveUser.get(user), user,
+									"0" + new String(ccode) + userName + ": " + message.substring(1));
+						}
 					}
 				}
 			}
@@ -225,6 +248,16 @@ public class ChatServer {
 					toClient(liveUser.get(nm), nm, smessage);
 				}
 			}
+
+			for (String nm : names) {
+				if (!openChat.containsKey(nm)) {
+					List<String> c = new ArrayList<String>();
+					c.add(code);
+					openChat.put(nm, c);
+				} else {
+					openChat.get(nm).add(code);
+				}
+			}
 		}
 
 		private void handleNewUsernameRequest(String message) { // 3
@@ -266,6 +299,7 @@ public class ChatServer {
 					}
 					if (num <= 1) {
 						codeMap.remove(s);
+						openChat.remove(s);
 						groupCodes.add(s);
 					}
 				}
@@ -281,19 +315,38 @@ public class ChatServer {
 		}
 
 		private void handleLiveUserRequest(String msg) { // 5
-			String mess = "5" ;
+			String mess = "5";
 			for (String nm : liveUser.keySet()) {
-				if(!nm.equals(userName)){
-					if(mess.equals("5")){
+				if (!nm.equals(userName)) {
+					if (mess.equals("5")) {
 						mess += nm;
-					}
-					else{
+					} else {
 						mess += "^" + nm;
 					}
 				}
-				
+
 			}
 			sendToClient(mess);
+		}
+
+		private void handleGroupClose(String msg) { // 6
+			if (openChat.containsKey(userName)) {
+				openChat.remove(msg);
+			}
+			boolean hasVal = false;
+			for (String name : openChat.keySet()) {
+				for (String code : openChat.get(name)) {
+					if (code.equals(msg)) {
+						hasVal = true;
+					}
+				}
+			}
+			if (!hasVal) {
+				if (codeMap.containsKey(msg)) {
+					codeMap.remove(msg);
+					groupCodes.add(msg);
+				}
+			}
 		}
 
 		private void sendToClient(String msg) {

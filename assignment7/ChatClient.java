@@ -182,7 +182,7 @@ public class ChatClient extends Application {
             String content = message.substring(1);
 
             if(!openChats.keySet().contains(chatID)) {
-                openChats.put(chatID, new MessageClient(chatID,""));
+                return;
             }
 
             MessageClient messageClient = openChats.get(chatID);

@@ -429,14 +429,16 @@ public class ChatClient extends Application {
                 @Override
                 public void handle(ContextMenuEvent event) {
 
-                    
+
+                	userFlag = false;
                     sendMessage("5");
                 }
             });
         }
 
         private synchronized void updateOnline() {
-        	while(!userFlag){}
+        	int timeout = 0;
+        	while(!userFlag || timeout<10000){ timeout ++;}
             onlineBox.getChildren().setAll();
             for(String s : onlineUsers) {
                 onlineBox.getChildren().add(new VBox(new Label(s)));

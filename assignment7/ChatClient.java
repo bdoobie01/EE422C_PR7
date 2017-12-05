@@ -338,6 +338,7 @@ public class ChatClient extends Application {
         TitledPane onlinePane;
         //TitledPane groupPane;
         ScrollPane scrollPane;
+        TextArea onlineFriends;
         VBox friendsBox;
         VBox onlineBox;
         VBox groupBox;
@@ -353,7 +354,7 @@ public class ChatClient extends Application {
 
             stage = primaryStage;
             stage.setTitle(user);
-            stage.setResizable(false);
+            //stage.setResizable(false);
             stage.setWidth(300);
 
             //stage.setHeight(400);
@@ -368,7 +369,8 @@ public class ChatClient extends Application {
 
             onlinePane = new TitledPane();
             onlinePane.setText("Online");
-            onlinePane.setContent(scrollPane = new ScrollPane(onlineBox = new VBox()));
+            onlinePane.setContent(scrollPane = new ScrollPane(onlineFriends = new TextArea("Refresh to see friends")));
+            scrollPane.setPrefHeight(100);scrollPane.setPrefWidth(300);onlineFriends.setPrefHeight(100);onlineFriends.setPrefWidth(300);
             for(String user : onlineUsers) {
                 onlineBox.getChildren().addAll(new Label(user));
             }
@@ -415,7 +417,7 @@ public class ChatClient extends Application {
                 @Override
                 public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
                     sendMessage("5");
-                    if(b) {b = !b; stage.setHeight(stage.getHeight() + onlinePane.getHeight());}
+                    if(b) {b = !b; stage.setHeight(stage.getHeight() + 100);}
                     else { b= !b; stage.setHeight(height);}
                     updateOnline();
                 }
@@ -429,9 +431,9 @@ public class ChatClient extends Application {
         }
 
         private synchronized void updateOnline() {
-            onlineBox.getChildren().setAll();
+            onlineFriends.clear();
             for(String s : onlineUsers) {
-                onlineBox.getChildren().add(new VBox(new Label(s)));
+                onlineFriends.appendText(s+"\n");
             }
         }
     }
@@ -529,8 +531,9 @@ public class ChatClient extends Application {
                             message += "^" + s[i];
                         }
                     }
-
                     sendMessage(message);
+                    Platform.exit();
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

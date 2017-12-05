@@ -163,7 +163,7 @@ public class ChatClient extends Application {
                                     handleClientClose(message);
                                     break;
 
-                                case 5:
+                                case '5':
                                     handleOnlineList(message);
 
                                 default:
@@ -337,16 +337,26 @@ public class ChatClient extends Application {
         //TitledPane friendsPane;
         TitledPane onlinePane;
         //TitledPane groupPane;
+        ScrollPane scrollPane;
         VBox friendsBox;
         VBox onlineBox;
         VBox groupBox;
 
         Button newGroup;
 
+        private boolean b;
+        private double height;
+
         @Override
         public void start(Stage primaryStage) throws Exception {
+            b = true;
+
             stage = primaryStage;
             stage.setTitle(user);
+            stage.setResizable(false);
+            stage.setWidth(300);
+
+            //stage.setHeight(400);
 
             borderPane = new BorderPane();
             //upperBox = new HBox();
@@ -358,7 +368,7 @@ public class ChatClient extends Application {
 
             onlinePane = new TitledPane();
             onlinePane.setText("Online");
-            onlinePane.setContent(onlineBox = new VBox());
+            onlinePane.setContent(scrollPane = new ScrollPane(onlineBox = new VBox()));
             for(String user : onlineUsers) {
                 onlineBox.getChildren().addAll(new Label(user));
             }
@@ -369,15 +379,17 @@ public class ChatClient extends Application {
 
             //groupBox.getChildren().addAll(newGroup = new Button("Create Group"));
 
-            accordion.getPanes().addAll( onlinePane);
+            accordion.getPanes().addAll(onlinePane);
 
             //borderPane.setTop(upperBox);
             borderPane.setTop(accordion);
             borderPane.setBottom(newGroup = new Button("Create Chat"));
+            newGroup.setPrefWidth(300);
 
             stage.setScene(new Scene(borderPane));
             stage.show();
 
+            height = stage.getHeight();
 
             newGroup.setOnAction(actionEvent -> {
                 try {
@@ -403,6 +415,9 @@ public class ChatClient extends Application {
                 @Override
                 public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
                     sendMessage("5");
+                    if(b) {b = !b; stage.setHeight(stage.getHeight() + onlinePane.getHeight());}
+                    else { b= !b; stage.setHeight(height);}
+                    updateOnline();
                 }
             });
             onlinePane.setOnContextMenuRequested(new EventHandler<ContextMenuEvent>() {
@@ -411,6 +426,13 @@ public class ChatClient extends Application {
                     sendMessage("5");
                 }
             });
+        }
+
+        private void updateOnline() {
+            onlineBox.getChildren().setAll();
+            for(String s : onlineUsers) {
+                onlineBox.getChildren().add(new VBox(new Label(s)));
+            }
         }
     }
 

@@ -17,6 +17,8 @@ package assignment7;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -396,6 +398,13 @@ public class ChatClient extends Application {
                 }
             });
 
+            onlinePane.expandedProperty().addListener(new ChangeListener<Boolean>() {
+
+                @Override
+                public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+                    sendMessage("5");
+                }
+            });
             onlinePane.setOnContextMenuRequested(new EventHandler<ContextMenuEvent>() {
                 @Override
                 public void handle(ContextMenuEvent event) {

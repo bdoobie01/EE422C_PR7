@@ -178,6 +178,10 @@ public class ChatClient extends Application {
             String chatID = "" + message.charAt(0);
             String content = message.substring(1);
 
+            if(!openChats.keySet().contains(chatID)) {
+                openChats.put(chatID, new MessageClient(chatID));
+            }
+
             MessageClient messageClient = openChats.get(chatID);
             messageClient.importMessage(content);
 
@@ -293,6 +297,7 @@ public class ChatClient extends Application {
                 @Override
                 public void handle(WindowEvent t) {
                     Platform.exit();
+                    sendMessage("4");
                     running = false;
                     System.exit(0);
                 }
@@ -362,6 +367,7 @@ public class ChatClient extends Application {
                 @Override
                 public void handle(WindowEvent t) {
                     Platform.exit();
+                    sendMessage("4");
                     running = false;
                     System.exit(0);
                 }
@@ -414,7 +420,7 @@ public class ChatClient extends Application {
             stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
                 @Override
                 public void handle(WindowEvent t) {
-                    sendMessage("4");
+                    sendMessage("6"+chatID);
                     openChats.remove(chatID);
                 }
             });

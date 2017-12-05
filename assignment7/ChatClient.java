@@ -179,7 +179,7 @@ public class ChatClient extends Application {
             String content = message.substring(1);
 
             if(!openChats.keySet().contains(chatID)) {
-                openChats.put(chatID, new MessageClient(chatID));
+                openChats.put(chatID, new MessageClient(chatID,""));
             }
 
             MessageClient messageClient = openChats.get(chatID);
@@ -211,10 +211,17 @@ public class ChatClient extends Application {
             Platform.runLater(() -> {
                 String chatID = "" + message.charAt(0);
                 String content = message.substring(1);
+                String [] parse = content.split("\\^");
+                boolean auth = Boolean.parseBoolean(parse[0]);
 
-                if(openChats.keySet().contains(chatID) || !Boolean.parseBoolean(content)) {return;}
+                if(openChats.keySet().contains(chatID) || !auth) {return;}
 
-                MessageClient messageClient = new MessageClient(chatID);
+                String chatTitle = "";
+                for(int i = 1; i < parse.length; i++) {
+                    chatTitle += parse[i] + " ";
+                }
+
+                MessageClient messageClient = new MessageClient(chatID,chatTitle);
                 try {
 					messageClient.start(new Stage());
 				} catch (Exception e) {
@@ -379,6 +386,7 @@ public class ChatClient extends Application {
 
         private Stage stage;
         private String chatID;
+        private String title;
 
         SplitPane splitPane;
         StackPane topPane;
@@ -388,14 +396,15 @@ public class ChatClient extends Application {
         TextField messageField;
         Button sendMessage;
 
-        public MessageClient(String s) {
-            chatID = s;
+        public MessageClient(String iD, String title) {
+            this.chatID = iD;
+            this.title = title;
         }
 
         @Override
         public void start(Stage primaryStage) throws Exception {
             stage = primaryStage;
-            stage.setTitle(chatID);
+            stage.setTitle(title);
 
             splitPane = new SplitPane();
             topPane = new StackPane();

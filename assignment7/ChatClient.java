@@ -68,6 +68,8 @@ public class ChatClient extends Application {
 
     private static volatile ArrayList<String> onlineUsers;
     private static volatile boolean running;
+    
+    private static boolean userFlag;
 
     public static void main(String[] args) {
         try {
@@ -99,7 +101,7 @@ public class ChatClient extends Application {
     private static void setUpNetworking() throws Exception {
         //@SuppressWarnings("resource")
         if (socket == null) {
-            socket = new Socket("127.0.0.1", 4242);
+            socket = new Socket("10.147.14.10", 4242);
 
             InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
             reader = new BufferedReader(streamReader);
@@ -265,6 +267,7 @@ public class ChatClient extends Application {
             for(int i = 0; i < parse.length; i++) {
                 onlineUsers.add(parse[i]);
             }
+            userFlag = true;
         }
 
         public void terminate() {
@@ -414,21 +417,26 @@ public class ChatClient extends Application {
 
                 @Override
                 public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+                	userFlag = false;
                     sendMessage("5");
                     if(b) {b = !b; stage.setHeight(stage.getHeight() + onlinePane.getHeight());}
                     else { b= !b; stage.setHeight(height);}
+
                     updateOnline();
                 }
             });
             onlinePane.setOnContextMenuRequested(new EventHandler<ContextMenuEvent>() {
                 @Override
                 public void handle(ContextMenuEvent event) {
+
+                    
                     sendMessage("5");
                 }
             });
         }
 
         private synchronized void updateOnline() {
+        	while(!userFlag){}
             onlineBox.getChildren().setAll();
             for(String s : onlineUsers) {
                 onlineBox.getChildren().add(new VBox(new Label(s)));

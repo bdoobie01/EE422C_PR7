@@ -66,7 +66,7 @@ public class ChatClient extends Application {
     private static LoginClient loginClient;
     private static ContactClient contactClient;
 
-    private static ArrayList<String> onlineUsers;
+    private static volatile ArrayList<String> onlineUsers;
     private static volatile boolean running;
 
     public static void main(String[] args) {
@@ -133,7 +133,7 @@ public class ChatClient extends Application {
          * Incoming lines are printed to UI while they exist
          */
         @Override
-        public void run() {
+        public synchronized void run() {
             while (running) {
                 String message;
                 try {
@@ -428,7 +428,7 @@ public class ChatClient extends Application {
             });
         }
 
-        private void updateOnline() {
+        private synchronized void updateOnline() {
             onlineBox.getChildren().setAll();
             for(String s : onlineUsers) {
                 onlineBox.getChildren().add(new VBox(new Label(s)));
@@ -443,7 +443,7 @@ public class ChatClient extends Application {
         private String title;
 
         SplitPane splitPane;
-        StackPane topPane;
+        ScrollPane topPane;
         FlowPane bottomPane;
 
         TextArea chatArea;
@@ -461,10 +461,9 @@ public class ChatClient extends Application {
             stage.setTitle(title);
 
             splitPane = new SplitPane();
-            topPane = new StackPane();
+            topPane = new ScrollPane(chatArea = new TextArea());
             bottomPane = new FlowPane();
 
-            topPane.getChildren().addAll(chatArea = new TextArea());
             bottomPane.getChildren().addAll(messageField = new TextField(), sendMessage = new Button(">>"));
 
             splitPane.setOrientation(Orientation.VERTICAL);

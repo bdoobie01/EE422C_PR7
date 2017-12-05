@@ -148,6 +148,10 @@ public class ChatServer {
 							handleClientClose(message);
 							break;
 
+						case '5':
+							handleLiveUserRequest(message);
+							break;
+
 						default:
 							break;
 						}
@@ -164,7 +168,10 @@ public class ChatServer {
 			ccode[0] = message.charAt(0);
 			if (codeMap.containsKey(new String(ccode))) {
 				for (String user : codeMap.get(new String(ccode))) {
-					toClient(liveUser.get(user), user, "0" + new String(ccode) + userName + ": " + message.substring(1));
+					if (liveUser.containsKey(user)) {
+						toClient(liveUser.get(user), user,
+								"0" + new String(ccode) + userName + ": " + message.substring(1));
+					}
 				}
 			}
 		}
@@ -208,9 +215,13 @@ public class ChatServer {
 			groupCodes.remove(code);
 			codeMap.put(code, names);
 			sendToClient("2" + code + "true");
-			for(String nm : names){
-				if(nm!=userName){
-					toClient(liveUser.get(nm),nm,"2" + code + "true");
+			String smessage = "2" + code + "true";
+			for (String nm : names) {
+				smessage += "^" + nm;
+			}
+			for (String nm : names) {
+				if (nm != userName) {
+					toClient(liveUser.get(nm), nm, smessage);
 				}
 			}
 		}
@@ -239,18 +250,23 @@ public class ChatServer {
 					for (String s : codeMap.get(cds)) {
 						if (s.equals(userName)) {
 							badCodes.add(cds);
-							for (String s2 : codeMap.get(cds)) {
-								if (!s2.equals(userName)) {
-									toClient(liveUser.get(s2), s2, "4" + cds);
-								}
-							}
 						}
 					}
 				}
 
 				for (String s : badCodes) {
-					codeMap.remove(s);
-					groupCodes.add(s);
+					int num = 0;
+					for (String user : codeMap.get(s)) {
+						for (String key : liveUser.keySet()) {
+							if (user.equals(key)) {
+								num++;
+							}
+						}
+					}
+					if (num <= 1) {
+						codeMap.remove(s);
+						groupCodes.add(s);
+					}
 				}
 
 				// Remove user from server
@@ -261,6 +277,22 @@ public class ChatServer {
 				}
 				cwriter.close();
 			}
+		}
+
+		private void handleLiveUserRequest(String msg) { // 5
+			String mess = "5" ;
+			for (String nm : liveUser.keySet()) {
+				if(!nm.equals(userName)){
+					if(mess.equals("5")){
+						mess += nm;
+					}
+					else{
+						mess += "^" + nm;
+					}
+				}
+				
+			}
+			sendToClient(mess);
 		}
 
 		private void sendToClient(String msg) {

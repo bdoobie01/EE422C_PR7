@@ -203,7 +203,7 @@ public class ChatServer {
 
 			boolean authenticated = false;
 			String[] spt = message.split("\\^");
-			String username = spt[0].toLowerCase();
+			String username = spt[0];
 			String pwd = spt[1];
 
 			if (loginData.containsKey(username)) {
@@ -262,7 +262,7 @@ public class ChatServer {
 
 		private void handleNewUsernameRequest(String message) { // 3
 			String[] spt = message.split("\\^");
-			String username = spt[0].toLowerCase();
+			String username = spt[0];
 			String pwd = spt[1];
 
 			if (!loginData.containsKey(username)) {
@@ -303,6 +303,8 @@ public class ChatServer {
 						groupCodes.add(s);
 					}
 				}
+				
+				System.out.println("Handling " + userName + " client closing");
 
 				// Remove user from server
 				liveUser.remove(userName);
@@ -330,6 +332,9 @@ public class ChatServer {
 		}
 
 		private void handleGroupClose(String msg) { // 6
+			
+			System.out.println("Handling " + userName + " chat window closing");
+			
 			if (openChat.containsKey(userName)) {
 				openChat.remove(msg);
 			}

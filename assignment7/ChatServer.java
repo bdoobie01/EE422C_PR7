@@ -191,6 +191,10 @@ public class ChatServer {
 								mes += "^" + nm;								
 							}
 							toClient(liveUser.get(user), user, mes);
+							try {
+								Thread.sleep(1000);
+							} catch (InterruptedException e) {
+							}
 							toClient(liveUser.get(user), user,
 									"0" + new String(ccode) + userName + ": " + message.substring(1));
 						}

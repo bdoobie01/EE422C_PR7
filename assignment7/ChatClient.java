@@ -101,7 +101,7 @@ public class ChatClient extends Application {
     private static void setUpNetworking() throws Exception {
         //@SuppressWarnings("resource")
         if (socket == null) {
-            socket = new Socket("10.147.14.10", 4242);
+            socket = new Socket("127.0.0.1", 4242);
 
             InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
             reader = new BufferedReader(streamReader);
@@ -356,7 +356,7 @@ public class ChatClient extends Application {
 
             stage = primaryStage;
             stage.setTitle(user);
-            stage.setResizable(false);
+            //stage.setResizable(false);
             stage.setWidth(300);
 
             //stage.setHeight(400);
@@ -419,7 +419,7 @@ public class ChatClient extends Application {
                 public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
                 	userFlag = false;
                     sendMessage("5");
-                    if(b) {b = !b; stage.setHeight(stage.getHeight() + onlinePane.getHeight());}
+                    if(b) {b = !b; stage.setHeight(stage.getHeight() + onlineBox.getHeight());}
                     else { b= !b; stage.setHeight(height);}
 
                     updateOnline();
@@ -438,7 +438,7 @@ public class ChatClient extends Application {
 
         private synchronized void updateOnline() {
         	int timeout = 0;
-        	while(!userFlag || timeout<10000){ timeout ++;}
+        	while(!userFlag && timeout<10000){ timeout ++;}
             onlineBox.getChildren().setAll();
             for(String s : onlineUsers) {
                 onlineBox.getChildren().add(new VBox(new Label(s)));

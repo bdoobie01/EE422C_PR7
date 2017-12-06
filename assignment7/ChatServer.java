@@ -47,7 +47,7 @@ public class ChatServer {
 
 	/**
 	 * Creates new ChatServer w/ call to setUpNetworking()
-	 * 
+	 *
 	 * @param args
 	 */
 	public static void main(String[] args) {
@@ -61,7 +61,7 @@ public class ChatServer {
 	/**
 	 * creates list of clientOutputStreams (printWriters), sets up socket on
 	 * port 4242
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	private void setUpNetworking() throws IOException {
@@ -83,7 +83,7 @@ public class ChatServer {
 
 	/**
 	 * writes message to all PrintWriters in list
-	 * 
+	 *
 	 * @param message
 	 */
 	private void notifyClients(String message) {
@@ -104,7 +104,7 @@ public class ChatServer {
 		/**
 		 * New ClientHandler for given socket Initializes reader to
 		 * socket.getInputStream()
-		 * 
+		 *
 		 * @param clientSocket
 		 * @throws IOException
 		 */
@@ -129,35 +129,35 @@ public class ChatServer {
 
 						switch (codeVal[0]) {
 
-						case '0': // Message
-							handleMessage(message);
-							break;
+							case '0': // Message
+								handleMessage(message);
+								break;
 
-						case '1': // Login
-							handleLogin(message);
-							break;
+							case '1': // Login
+								handleLogin(message);
+								break;
 
-						case '2': // New Chat
-							handleNewChatGroup(message);
-							break;
+							case '2': // New Chat
+								handleNewChatGroup(message);
+								break;
 
-						case '3': // New Login
-							handleNewUsernameRequest(message);
-							break;
+							case '3': // New Login
+								handleNewUsernameRequest(message);
+								break;
 
-						case '4': // Client Close
-							handleClientClose(message);
-							break;
+							case '4': // Client Close
+								handleClientClose(message);
+								break;
 
-						case '5':
-							handleLiveUserRequest(message);
-							break;
+							case '5':
+								handleLiveUserRequest(message);
+								break;
 
-						case '6':
-							handleGroupClose(message);
+							case '6':
+								handleGroupClose(message);
 
-						default:
-							break;
+							default:
+								break;
 						}
 					} catch (Exception e) {
 					}
@@ -188,7 +188,7 @@ public class ChatServer {
 							}
 							String mes = "2" + new String(ccode) + "true";
 							for(String nm : codeMap.get(new String(ccode))){
-								mes += "^" + nm;								
+								mes += "^" + nm;
 							}
 							toClient(liveUser.get(user), user, mes);
 							try {
@@ -307,7 +307,7 @@ public class ChatServer {
 						groupCodes.add(s);
 					}
 				}
-				
+
 				System.out.println("Handling " + userName + " client closing");
 
 				// Remove user from server
@@ -320,7 +320,7 @@ public class ChatServer {
 			}
 		}
 
-		
+
 		private void handleLiveUserRequest(String msg) { // 5
 			String mess = "5";
 			for (String nm : liveUser.keySet()) {
@@ -337,9 +337,9 @@ public class ChatServer {
 		}
 
 		private void handleGroupClose(String msg) { // 6
-			
+
 			System.out.println("Handling " + userName + " chat window closing");
-			
+
 			if (openChat.containsKey(userName)) {
 				openChat.remove(msg);
 			}

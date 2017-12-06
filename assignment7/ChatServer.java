@@ -320,6 +320,7 @@ public class ChatServer {
 			}
 		}
 
+		
 		private void handleLiveUserRequest(String msg) { // 5
 			String mess = "5";
 			for (String nm : liveUser.keySet()) {
